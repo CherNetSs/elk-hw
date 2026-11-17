@@ -1,0 +1,34 @@
+filebeat.inputs:
+  - type: filestream
+    id: nginx-access-json
+    enabled: true
+    paths:
+      - /var/log/nginx-lab/access.log
+    parsers:
+      - ndjson:
+          target: ""
+          add_error_key: true
+    fields:
+      labels:
+        shipper: filebeat
+    fields_under_root: true
+
+processors:
+  - timestamp:
+      field: time
+      layouts:
+        - '2006-01-02T15:04:05Z07:00'
+      test:
+        - '2026-11-17T10:00:00+03:00'
+  - drop_fields:
+      fields: [time]
+      ignore_missing: true
+
+output.elasticsearch:
+  hosts: ["http://elasticsearch:9200"]
+  index: "nginx-filebeat-%{+yyyy.MM.dd}"
+
+setup.ilm.enabled: false
+setup.template.enabled: false
+monitoring.enabled: false
+logging.level: info

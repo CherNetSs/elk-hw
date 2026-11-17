@@ -1,0 +1,46 @@
+2026-11-17T11:02:57+03:00
+chernez-Virtual-Machine
+PASS: 28 Nginx events via logstash; parsed timestamps, fields, GET/POST and 200/404 verified
+PASS: 14 Nginx events via filebeat; parsed timestamps, fields, GET/POST and 200/404 verified
+{
+  "cluster_name" : "elk-chernez-c7e92a",
+  "status" : "green",
+  "timed_out" : false,
+  "number_of_nodes" : 1,
+  "number_of_data_nodes" : 1,
+  "active_primary_shards" : 39,
+  "active_shards" : 39,
+  "relocating_shards" : 0,
+  "initializing_shards" : 0,
+  "unassigned_shards" : 0,
+  "unassigned_primary_shards" : 0,
+  "delayed_unassigned_shards" : 0,
+  "number_of_pending_tasks" : 0,
+  "number_of_in_flight_fetch" : 0,
+  "task_max_waiting_in_queue_millis" : 0,
+  "active_shards_percent_as_number" : 100.0
+}
+health status index                     uuid                   pri rep docs.count docs.deleted store.size pri.store.size dataset.size
+green  open   nginx-logstash-2026.11.17 JLnqrV8YReyifx6RKDIBUA   1   0         28            0     31.7kb         31.7kb       31.7kb
+green  open   nginx-filebeat-2026.11.17 SKacZZX4RDWE4htFshiHRA   1   0         14            0     20.9kb         20.9kb       20.9kb
+NAME                     IMAGE                                                  COMMAND                  SERVICE         CREATED          STATUS                     PORTS
+elk-hw-elasticsearch-1   docker.elastic.co/elasticsearch/elasticsearch:8.19.6   "/bin/tini -- /usr/l…"   elasticsearch   13 minutes ago   Up 13 minutes (healthy)    127.0.0.1:9200->9200/tcp, 9300/tcp
+elk-hw-filebeat-1        docker.elastic.co/beats/filebeat:8.19.6                "/usr/bin/tini -- /u…"   filebeat        5 minutes ago    Up 5 minutes
+elk-hw-kibana-1          docker.elastic.co/kibana/kibana:8.19.6                 "/bin/tini -- /usr/l…"   kibana          13 minutes ago   Up 12 minutes              192.168.1.13:5601->5601/tcp
+elk-hw-logstash-1        docker.elastic.co/logstash/logstash:8.19.6             "/usr/local/bin/dock…"   logstash        8 minutes ago    Exited (0) 5 minutes ago
+elk-hw-nginx-1           nginx:1.28.0                                           "/docker-entrypoint.…"   nginx           8 minutes ago    Up 8 minutes               192.168.1.13:8088->80/tcp
+nginx: the configuration file /etc/nginx/nginx.conf syntax is ok
+nginx: configuration file /etc/nginx/nginx.conf test is successful
+Config OK
+elasticsearch: http://elasticsearch:9200...
+  parse url... OK
+  connection...
+    parse host... OK
+    dns lookup... OK
+    addresses: 172.21.0.3
+    dial up... OK
+  TLS... WARN secure connection disabled
+  talk to server... OK
+  version: 8.19.6
+Filesystem      Size  Used Avail Use% Mounted on
+/dev/sda2        59G   42G   15G  75% /
