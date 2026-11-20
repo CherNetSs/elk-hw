@@ -202,6 +202,99 @@ Filebeat; Logstash остановлен. На корневом диске ост
 Экспорт содержит настройки представлений; сами события хранятся в томе Elasticsearch.
 Для новых запросов после даты проверки нужно изменить диапазон времени в Discover.
 
+## Подробный ход выполнения лабораторной
+
+Стенд развёрнут на Ubuntu-сервере `192.168.1.13` в каталоге `~/elk-hw`. Команды ниже
+приведены в порядке выполнения на сервере. Параметры SSH и пароль в отчёт не включены.
+
+### 1. Подготовка и запуск Elasticsearch с Kibana
+
+```bash
+cd ~/elk-hw
+cp .env.example .env
+sysctl vm.max_map_count
+docker compose --profile logstash up -d
+docker compose ps
+curl -X GET 'localhost:9200/_cluster/health?pretty'
+```
+
+`cd` выбирает каталог проекта, а копия `.env` задаёт версии компонентов, имя кластера
+и адрес интерфейса Kibana. `vm.max_map_count` проверяет лимит memory map, необходимый
+Elasticsearch. Compose запускает Elasticsearch, Kibana, Nginx и Logstash; профиль
+`logstash` включает первый способ доставки. `docker compose ps` показывает состояние
+сервисов. Запрос `curl` проверяет доступность API и подтверждает заданное имя
+`elk-chernez-c7e92a` и состояние кластера.
+
+### 2. Подготовка индексов и проверка Logstash
+
+```bash
+bash scripts/01-prepare.sh
+bash scripts/02-generate-traffic.sh logstash
+bash scripts/04-verify.sh logstash
+```
+
+Первый скрипт загружает шаблон индексов с одним шардом и без реплик (для односерверной
+лабы), затем создаёт в Kibana Data View `nginx-*` с временным полем `@timestamp`.
+Второй отправляет через Nginx 12 GET-запросов с ответом 200, один GET с ответом 404
+и один POST с ответом 200. Nginx записывает их в JSON-файл; Logstash читает файл,
+разбирает JSON и время, затем отправляет документы в Elasticsearch.
+Проверочный скрипт обновляет индекс и проверяет число событий, разобранные поля,
+HTTP-методы, статусы, временные отметки и метку `labels.shipper: logstash`.
+После первой генерации проверка подтвердила 14 записей; после повторного запуска — 28.
+
+В Kibana Discover выбран фильтр `labels.shipper : "logstash"`. Сохранённый поиск
+«Task 3 - Nginx via Logstash» и скриншот фиксируют результат.
+
+### 3. Переключение доставки на Filebeat
+
+```bash
+bash scripts/03-switch-to-filebeat.sh
+bash scripts/04-verify.sh filebeat
+```
+
+Скрипт переключения сначала останавливает Logstash, архивирует уже прочитанный access-
+лог и просит Nginx открыть новый файл. Это предотвращает повторную отправку старых
+строк. Затем запускается Filebeat: он читает новый файл, разбирает JSON, приводит
+время к `@timestamp` и отправляет записи прямо в Elasticsearch. Генератор создаёт
+новые запросы с меткой `filebeat`. Проверка подтверждает 14 событий, включая GET,
+POST и ответ 404, а также корректность разобранных полей.
+
+В Discover используется фильтр `labels.shipper : "filebeat"`; в событиях также видно
+`agent.type: filebeat`. Сохранён поиск «Task 4 - Nginx via Filebeat» и скриншот.
+На этом этапе Logstash остановлен, а Elasticsearch, Kibana, Nginx и Filebeat работают.
+
+### 4. Дополнительная проверка состояния
+
+```bash
+docker compose --profile logstash --profile filebeat ps -a
+docker compose exec -T nginx nginx -t
+docker compose exec -T filebeat filebeat test config --strict.perms=false
+docker compose exec -T filebeat filebeat test output --strict.perms=false
+curl -fsS 'localhost:9200/_cat/indices/nginx*?v'
+df -h /
+```
+
+`ps -a` показывает активные и остановленные контейнеры. `nginx -t` проверяет синтаксис
+конфигурации веб-сервера. Проверки Filebeat подтверждают корректность настроек и
+соединение с Elasticsearch. `_cat/indices` показывает количество документов и здоровье
+индексов Logstash и Filebeat. `df -h /` проверяет оставшееся место на диске.
+
+### 5. Публикация решения
+
+Из локального каталога репозитория выполнены команды:
+
+```bash
+git add README.md .env.example .gitattributes .gitignore compose.yaml \
+  elasticsearch evidence filebeat kibana logstash nginx scripts img
+git diff --cached --check
+git commit -m "Complete ELK homework tasks 1-4 with configs and screenshots"
+git push origin main
+```
+
+`git add` включает README, конфигурации, экспорт сохранённых поисков, результаты
+проверок и скриншоты. `git diff --cached --check` проверяет форматирование.
+`git commit` сохраняет решение в истории, а `git push` публикует ветку `main` в GitHub.
+
 ## Документация
 
 - [Elasticsearch в Docker](https://www.elastic.co/guide/en/elasticsearch/reference/8.19/docker.html).
